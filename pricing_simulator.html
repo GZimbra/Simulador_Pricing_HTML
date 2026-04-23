@@ -1,232 +1,1131 @@
-
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PriceOps — Simulador de Pricing Estratégico</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --eve-bg: #03070f;
-    --eve-surface: #080f1c;
-    --eve-panel: #0b1422;
-    --eve-card: #0e1929;
-    --eve-border: rgba(0, 180, 255, 0.15);
-    --eve-border-bright: rgba(0, 200, 255, 0.35);
-    --eve-cyan: #00b4ff;
-    --eve-cyan-dim: rgba(0, 180, 255, 0.7);
-    --eve-cyan-glow: rgba(0, 180, 255, 0.12);
-    --eve-white: #e8f4ff;
-    --eve-muted: #6a8aaa;
-    --eve-subtle: #354a62;
-    --eve-green: #00e5a0;
-    --eve-amber: #ffb340;
-    --eve-red: #ff4d6a;
-    --eve-accent: #1a3a5c;
-  }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  .eve-wrap * { box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif; }
-  .eve-wrap { background: var(--eve-bg); color: var(--eve-white); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--eve-border); }
+:root {
+  --bg: #020810;
+  --surface: #06101f;
+  --panel: #081428;
+  --card: #0a1830;
+  --border: rgba(0, 180, 255, 0.12);
+  --border-bright: rgba(0, 200, 255, 0.3);
+  --cyan: #00b4ff;
+  --cyan-dim: rgba(0, 180, 255, 0.6);
+  --cyan-glow: rgba(0, 180, 255, 0.08);
+  --white: #e8f4ff;
+  --muted: #6a8aaa;
+  --subtle: #354a62;
+  --green: #00e5a0;
+  --amber: #ffb340;
+  --red: #ff4d6a;
+  --accent: #1a3a5c;
+  --font-display: 'DM Serif Display', Georgia, serif;
+  --font-body: 'Outfit', system-ui, sans-serif;
+  --font-mono: 'DM Mono', monospace;
+}
 
-  .eve-header { display: flex; align-items: center; gap: 12px; margin-bottom: 1.75rem; padding-bottom: 1rem; border-bottom: 1px solid var(--eve-border); }
-  .eve-logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--eve-cyan); flex-shrink: 0; box-shadow: 0 0 6px var(--eve-cyan); }
-  .eve-header-title { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--eve-cyan); font-weight: 500; }
-  .eve-header-sub { font-size: 11px; color: var(--eve-muted); margin-left: auto; letter-spacing: 0.06em; }
+html { scroll-behavior: smooth; }
 
-  .eve-tabs { display: flex; gap: 2px; margin-bottom: 1.5rem; background: var(--eve-surface); border-radius: 8px; padding: 3px; border: 1px solid var(--eve-border); }
-  .eve-tab { flex: 1; padding: 7px 12px; font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; border-radius: 6px; background: transparent; border: none; color: var(--eve-muted); transition: all 0.15s; }
-  .eve-tab.active { background: var(--eve-accent); color: var(--eve-cyan); border: 1px solid var(--eve-border-bright); }
+body {
+  background: var(--bg);
+  color: var(--white);
+  font-family: var(--font-body);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
 
-  .eve-section-label { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--eve-muted); margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
-  .eve-section-label::after { content: ''; flex: 1; height: 1px; background: var(--eve-border); }
+/* ─── NOISE OVERLAY ─── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+}
 
-  .eve-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
-  .eve-row label { font-size: 12px; color: var(--eve-muted); min-width: 170px; letter-spacing: 0.02em; }
-  .eve-row .val { font-size: 12px; font-weight: 500; min-width: 58px; text-align: right; color: var(--eve-cyan); font-variant-numeric: tabular-nums; }
+/* ─── GRID BG ─── */
+.grid-bg {
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,180,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,180,255,0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+  z-index: 0;
+}
 
-  .eve-input { background: var(--eve-surface); border: 1px solid var(--eve-border); border-radius: 6px; color: var(--eve-white); font-size: 13px; padding: 5px 10px; width: 90px; text-align: right; outline: none; }
-  .eve-input:focus { border-color: var(--eve-cyan-dim); }
-  .eve-input-unit { font-size: 11px; color: var(--eve-subtle); }
+/* ─── NAV ─── */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 3rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(2, 8, 16, 0.85);
+  backdrop-filter: blur(16px);
+}
 
-  input[type=range].eve-range { -webkit-appearance: none; appearance: none; flex: 1; height: 4px; border-radius: 2px; background: var(--eve-surface); border: none; outline: none; cursor: pointer; position: relative; }
-  input[type=range].eve-range::-webkit-slider-runnable-track { height: 4px; background: linear-gradient(to right, var(--eve-cyan) 0%, var(--eve-cyan) var(--pct, 50%), var(--eve-border) var(--pct, 50%)); border-radius: 2px; }
-  input[type=range].eve-range::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--eve-bg); border: 2px solid var(--eve-cyan); margin-top: -5px; }
-  input[type=range].eve-range::-moz-range-track { height: 4px; background: var(--eve-border); border-radius: 2px; }
-  input[type=range].eve-range::-moz-range-progress { height: 4px; background: var(--eve-cyan); border-radius: 2px; }
-  input[type=range].eve-range::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--eve-bg); border: 2px solid var(--eve-cyan); }
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  color: var(--cyan);
+  text-transform: uppercase;
+}
 
-  .eve-divider { border: none; border-top: 1px solid var(--eve-border); margin: 1.25rem 0; }
+.nav-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 10px var(--cyan);
+  animation: pulse 2s infinite;
+}
 
-  .eve-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 1.5rem; }
-  .eve-metric { background: var(--eve-card); border: 1px solid var(--eve-border); border-radius: 8px; padding: 0.875rem 1rem; }
-  .eve-metric.primary { border-color: var(--eve-border-bright); background: var(--eve-panel); }
-  .eve-metric .mlabel { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--eve-muted); margin: 0 0 6px; }
-  .eve-metric .mvalue { font-size: 20px; font-weight: 500; color: var(--eve-white); margin: 0; font-variant-numeric: tabular-nums; }
-  .eve-metric.primary .mvalue { color: var(--eve-cyan); }
-  .eve-metric .msub { font-size: 10px; color: var(--eve-subtle); margin: 4px 0 0; }
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 10px var(--cyan); }
+  50% { opacity: 0.5; box-shadow: 0 0 4px var(--cyan); }
+}
 
-  .eve-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-  .eve-bar-row .bl { font-size: 11px; color: var(--eve-muted); min-width: 80px; letter-spacing: 0.04em; text-transform: uppercase; }
-  .eve-bar-track { flex: 1; height: 4px; background: var(--eve-surface); border-radius: 2px; overflow: hidden; }
-  .eve-bar-fill { height: 100%; border-radius: 2px; transition: width 0.25s ease; }
-  .eve-bar-row .bv { font-size: 11px; font-weight: 500; color: var(--eve-white); min-width: 68px; text-align: right; font-variant-numeric: tabular-nums; }
-  .eve-bar-row .bp { font-size: 10px; color: var(--eve-subtle); min-width: 38px; text-align: right; font-variant-numeric: tabular-nums; }
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+  list-style: none;
+}
 
-  .eve-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 99px; letter-spacing: 0.06em; text-transform: uppercase; }
-  .eve-pill.green { background: rgba(0, 229, 160, 0.1); color: var(--eve-green); border: 1px solid rgba(0, 229, 160, 0.25); }
-  .eve-pill.amber { background: rgba(255, 179, 64, 0.1); color: var(--eve-amber); border: 1px solid rgba(255, 179, 64, 0.25); }
-  .eve-pill.red { background: rgba(255, 77, 106, 0.1); color: var(--eve-red); border: 1px solid rgba(255, 77, 106, 0.25); }
+.nav-links a {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
 
-  .eve-grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 1rem 0; }
-  .eve-panel-block { display: none; }
-  .eve-panel-block.active { display: block; }
+.nav-links a:hover { color: var(--white); }
 
-  table.eve-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  table.eve-table th { font-size: 10px; font-weight: 500; color: var(--eve-muted); text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--eve-border); letter-spacing: 0.1em; text-transform: uppercase; }
-  table.eve-table td { padding: 8px 8px; border-bottom: 1px solid rgba(0,180,255,0.06); color: var(--eve-white); }
-  table.eve-table tr:last-child td { border-bottom: none; }
-  table.eve-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.btn-launch {
+  background: transparent;
+  border: 1px solid var(--border-bright);
+  color: var(--cyan);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 8px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
 
-  .chart-wrap { position: relative; height: 200px; margin-top: 1.25rem; }
-  .chart-wrap canvas { width: 100% !important; }
+.btn-launch:hover {
+  background: rgba(0, 180, 255, 0.08);
+  box-shadow: 0 0 16px rgba(0, 180, 255, 0.15);
+}
 
-  .scan-line { position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent 0%, var(--eve-cyan-dim) 50%, transparent 100%); opacity: 0.4; pointer-events: none; }
+/* ─── HERO ─── */
+.hero {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 120px 2rem 80px;
+  overflow: hidden;
+}
 
-  @media (max-width: 560px) {
-    .eve-metrics { grid-template-columns: repeat(2, 1fr); }
-    .eve-grid3 { grid-template-columns: 1fr 1fr; }
-    .eve-row label { min-width: 120px; font-size: 11px; }
-  }
+.hero-glow {
+  position: absolute;
+  width: 800px; height: 800px;
+  background: radial-gradient(ellipse, rgba(0,180,255,0.06) 0%, transparent 70%);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.hero-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  border: 1px solid var(--border-bright);
+  padding: 6px 16px;
+  border-radius: 99px;
+  margin-bottom: 2rem;
+  background: rgba(0, 180, 255, 0.04);
+  animation: fadeUp 0.8s ease both;
+}
+
+.hero-tag::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: pulse 1.5s infinite;
+}
+
+.hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 7vw, 6.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--white);
+  margin-bottom: 1.5rem;
+  animation: fadeUp 0.8s 0.1s ease both;
+}
+
+.hero h1 em {
+  font-style: italic;
+  color: var(--cyan);
+}
+
+.hero-sub {
+  font-size: clamp(1rem, 1.8vw, 1.2rem);
+  font-weight: 300;
+  color: var(--muted);
+  max-width: 580px;
+  margin: 0 auto 2.5rem;
+  line-height: 1.7;
+  animation: fadeUp 0.8s 0.2s ease both;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: center;
+  animation: fadeUp 0.8s 0.3s ease both;
+}
+
+.btn-primary {
+  background: var(--cyan);
+  color: var(--bg);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 14px 32px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 0 24px rgba(0, 180, 255, 0.25);
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-primary:hover {
+  box-shadow: 0 0 40px rgba(0, 180, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 14px 24px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-ghost:hover {
+  border-color: var(--border-bright);
+  color: var(--white);
+}
+
+/* HERO STATS */
+.hero-stats {
+  display: flex;
+  gap: 3rem;
+  margin-top: 5rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border);
+  animation: fadeUp 0.8s 0.4s ease both;
+}
+
+.hero-stat { text-align: center; }
+.hero-stat .s-val {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  color: var(--cyan);
+  display: block;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.hero-stat .s-label {
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── FEATURES SECTION ─── */
+.section {
+  position: relative;
+  z-index: 1;
+  padding: 100px 3rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.section-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-eyebrow::before {
+  content: '';
+  width: 24px; height: 1px;
+  background: var(--cyan);
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  line-height: 1.1;
+  color: var(--white);
+  margin-bottom: 1rem;
+}
+
+.section-title em {
+  font-style: italic;
+  color: var(--cyan);
+}
+
+.section-desc {
+  font-size: 1rem;
+  color: var(--muted);
+  max-width: 500px;
+  line-height: 1.7;
+  margin-bottom: 3.5rem;
+}
+
+/* Features grid */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.feature-card {
+  background: var(--surface);
+  padding: 2.5rem 2rem;
+  transition: background 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.feature-card:hover { background: var(--panel); }
+.feature-card:hover::before { opacity: 1; }
+
+.feature-icon {
+  width: 40px; height: 40px;
+  border: 1px solid var(--border-bright);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  background: var(--cyan-glow);
+  font-size: 18px;
+}
+
+.feature-title {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: var(--white);
+  margin-bottom: 0.75rem;
+}
+
+.feature-desc {
+  font-size: 0.875rem;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+/* ─── HOW IT WORKS ─── */
+.how-section {
+  position: relative;
+  z-index: 1;
+  padding: 80px 3rem;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.how-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5rem;
+  align-items: center;
+}
+
+.steps-list { display: flex; flex-direction: column; gap: 2rem; }
+
+.step {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.step-num {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--cyan);
+  border: 1px solid var(--border-bright);
+  width: 32px; height: 32px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--cyan-glow);
+  letter-spacing: 0.05em;
+}
+
+.step-content h4 {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--white);
+  margin-bottom: 0.4rem;
+}
+
+.step-content p {
+  font-size: 0.875rem;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+/* Mini preview panel */
+.mini-preview {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.mini-preview::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  opacity: 0.6;
+}
+
+.mini-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.mini-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+.mini-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.mini-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mini-bar-wrap { flex: 1; margin: 0 12px; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.mini-bar { height: 100%; border-radius: 2px; }
+
+.mini-val {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  min-width: 60px;
+  text-align: right;
+}
+
+.mini-metric-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 1rem;
+}
+
+.mini-metric {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.75rem;
+}
+
+.mini-metric .mm-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.mini-metric .mm-val {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--cyan);
+}
+
+/* ─── CTA SECTION ─── */
+.cta-section {
+  position: relative;
+  z-index: 1;
+  padding: 120px 3rem;
+  text-align: center;
+  overflow: hidden;
+}
+
+.cta-glow {
+  position: absolute;
+  width: 600px; height: 600px;
+  background: radial-gradient(ellipse, rgba(0,180,255,0.08) 0%, transparent 70%);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.cta-box {
+  max-width: 640px;
+  margin: 0 auto;
+  background: var(--panel);
+  border: 1px solid var(--border-bright);
+  border-radius: 16px;
+  padding: 4rem 3rem;
+  position: relative;
+}
+
+.cta-box::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 20%; right: 20%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+}
+
+.cta-box h2 {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  line-height: 1.1;
+  margin-bottom: 1rem;
+  color: var(--white);
+}
+
+.cta-box h2 em {
+  font-style: italic;
+  color: var(--cyan);
+}
+
+.cta-box p {
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin-bottom: 2rem;
+  line-height: 1.7;
+}
+
+/* ─── FOOTER ─── */
+footer {
+  position: relative;
+  z-index: 1;
+  border-top: 1px solid var(--border);
+  padding: 2rem 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--subtle);
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ─── FULLSCREEN SIMULATOR ─── */
+#simulator-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--bg);
+  display: none;
+  flex-direction: column;
+  overflow: auto;
+}
+
+#simulator-overlay.open {
+  display: flex;
+}
+
+.sim-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 2rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(2, 8, 16, 0.95);
+  backdrop-filter: blur(12px);
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.sim-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--cyan);
+  text-transform: uppercase;
+}
+
+.btn-close {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 6px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-close:hover {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.sim-body {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ─── SIMULATOR STYLES (adapted) ─── */
+.eve-wrap * { box-sizing: border-box; font-family: var(--font-body); }
+.eve-wrap {
+  background: var(--bg);
+  color: var(--white);
+  padding: 0;
+  border: none;
+  border-radius: 0;
+}
+
+.eve-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1.75rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.eve-logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--cyan); flex-shrink: 0; box-shadow: 0 0 6px var(--cyan); animation: pulse 2s infinite; }
+.eve-header-title { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--cyan); font-weight: 500; font-family: var(--font-mono); }
+.eve-header-sub { font-size: 11px; color: var(--muted); margin-left: auto; letter-spacing: 0.06em; font-family: var(--font-mono); }
+
+.eve-tabs { display: flex; gap: 2px; margin-bottom: 1.5rem; background: var(--surface); border-radius: 8px; padding: 3px; border: 1px solid var(--border); }
+.eve-tab { flex: 1; padding: 8px 12px; font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; border-radius: 6px; background: transparent; border: none; color: var(--muted); transition: all 0.15s; font-family: var(--font-mono); }
+.eve-tab.active { background: var(--accent); color: var(--cyan); border: 1px solid var(--border-bright); }
+
+.eve-section-label { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); }
+.eve-section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+.eve-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.eve-row label { font-size: 12px; color: var(--muted); min-width: 190px; letter-spacing: 0.02em; }
+.eve-row .val { font-size: 12px; font-weight: 500; min-width: 58px; text-align: right; color: var(--cyan); font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
+
+.eve-input { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--white); font-size: 13px; padding: 5px 10px; width: 100px; text-align: right; outline: none; font-family: var(--font-mono); }
+.eve-input:focus { border-color: var(--cyan-dim); box-shadow: 0 0 0 2px rgba(0,180,255,0.08); }
+.eve-input-unit { font-size: 11px; color: var(--subtle); font-family: var(--font-mono); }
+
+input[type=range].eve-range { -webkit-appearance: none; appearance: none; flex: 1; height: 4px; border-radius: 2px; background: var(--surface); border: none; outline: none; cursor: pointer; }
+input[type=range].eve-range::-webkit-slider-runnable-track { height: 4px; background: linear-gradient(to right, var(--cyan) 0%, var(--cyan) var(--pct, 50%), var(--border) var(--pct, 50%)); border-radius: 2px; }
+input[type=range].eve-range::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--bg); border: 2px solid var(--cyan); margin-top: -5px; }
+input[type=range].eve-range::-moz-range-track { height: 4px; background: var(--border); border-radius: 2px; }
+input[type=range].eve-range::-moz-range-progress { height: 4px; background: var(--cyan); border-radius: 2px; }
+input[type=range].eve-range::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--bg); border: 2px solid var(--cyan); }
+
+.eve-divider { border: none; border-top: 1px solid var(--border); margin: 1.25rem 0; }
+
+.eve-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 1.5rem; }
+.eve-metric { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 0.875rem 1rem; }
+.eve-metric.primary { border-color: var(--border-bright); background: var(--panel); }
+.eve-metric .mlabel { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; font-family: var(--font-mono); }
+.eve-metric .mvalue { font-size: 20px; font-weight: 500; color: var(--white); margin: 0; font-variant-numeric: tabular-nums; }
+.eve-metric.primary .mvalue { color: var(--cyan); }
+.eve-metric .msub { font-size: 10px; color: var(--subtle); margin: 4px 0 0; font-family: var(--font-mono); }
+
+.eve-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.eve-bar-row .bl { font-size: 11px; color: var(--muted); min-width: 80px; letter-spacing: 0.04em; text-transform: uppercase; font-family: var(--font-mono); }
+.eve-bar-track { flex: 1; height: 4px; background: var(--surface); border-radius: 2px; overflow: hidden; }
+.eve-bar-fill { height: 100%; border-radius: 2px; transition: width 0.25s ease; }
+.eve-bar-row .bv { font-size: 11px; font-weight: 500; color: var(--white); min-width: 68px; text-align: right; font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
+.eve-bar-row .bp { font-size: 10px; color: var(--subtle); min-width: 38px; text-align: right; font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
+
+.eve-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 99px; letter-spacing: 0.06em; text-transform: uppercase; font-family: var(--font-mono); }
+.eve-pill.green { background: rgba(0, 229, 160, 0.1); color: var(--green); border: 1px solid rgba(0, 229, 160, 0.25); }
+.eve-pill.amber { background: rgba(255, 179, 64, 0.1); color: var(--amber); border: 1px solid rgba(255, 179, 64, 0.25); }
+.eve-pill.red { background: rgba(255, 77, 106, 0.1); color: var(--red); border: 1px solid rgba(255, 77, 106, 0.25); }
+
+.eve-grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 1rem 0; }
+.eve-panel-block { display: none; }
+.eve-panel-block.active { display: block; }
+
+table.eve-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+table.eve-table th { font-size: 10px; font-weight: 500; color: var(--muted); text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border); letter-spacing: 0.1em; text-transform: uppercase; font-family: var(--font-mono); }
+table.eve-table td { padding: 8px 8px; border-bottom: 1px solid rgba(0,180,255,0.06); color: var(--white); font-family: var(--font-mono); font-size: 12px; }
+table.eve-table tr:last-child td { border-bottom: none; }
+table.eve-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.chart-wrap { position: relative; height: 220px; margin-top: 1.25rem; }
+.chart-wrap canvas { width: 100% !important; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  nav { padding: 1rem 1.5rem; }
+  .nav-links { display: none; }
+  .section { padding: 60px 1.5rem; }
+  .features-grid { grid-template-columns: 1fr; }
+  .how-inner { grid-template-columns: 1fr; gap: 2.5rem; }
+  .hero-stats { gap: 1.5rem; }
+  .eve-metrics { grid-template-columns: 1fr 1fr; }
+  .eve-grid3 { grid-template-columns: 1fr 1fr; }
+  .eve-row label { min-width: 120px; font-size: 11px; }
+  .sim-body { padding: 1rem; }
+  .cta-box { padding: 2.5rem 1.5rem; }
+  .how-section { padding: 60px 1.5rem; }
+  .cta-section { padding: 80px 1.5rem; }
+}
 </style>
+</head>
+<body>
 
-<div class="eve-wrap">
-  <div class="eve-header">
-    <div class="eve-logo-dot"></div>
-    <span class="eve-header-title">Simulador de Pricing</span>
-    <span class="eve-header-sub">Modo analítico</span>
+<div class="grid-bg"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <div class="nav-dot"></div>
+    PriceOps
   </div>
+  <ul class="nav-links">
+    <li><a href="#funcionalidades">Funcionalidades</a></li>
+    <li><a href="#como-funciona">Como funciona</a></li>
+    <li><a href="#simulator-cta">Demonstração</a></li>
+  </ul>
+  <a class="btn-launch" href="#" onclick="openSim(event)">Abrir Simulador →</a>
+</nav>
 
-  <div class="eve-tabs">
-    <button class="eve-tab active" onclick="eveTab('pricing')">Pricing</button>
-    <button class="eve-tab" onclick="eveTab('cenarios')">Cenários</button>
-    <button class="eve-tab" onclick="eveTab('break')">Break-even</button>
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-tag">Análise estratégica de preços</div>
+  <h1>Precifique com<br><em>inteligência</em></h1>
+  <p class="hero-sub">
+    Simule preços, analise margens, calcule break-even e explore cenários de desconto — tudo em tempo real, sem planilhas.
+  </p>
+  <div class="hero-actions">
+    <a class="btn-primary" href="#" onclick="openSim(event)">Iniciar Simulação</a>
+    <a class="btn-ghost" href="#funcionalidades">Ver Funcionalidades</a>
   </div>
-
-  <div id="epanel-pricing" class="eve-panel-block active">
-    <p class="eve-section-label">Estrutura de custos</p>
-    <div class="eve-row">
-      <label>Custo direto (CMV)</label>
-      <input type="number" id="cmv" value="100" min="0" step="1" oninput="eveCalc()" class="eve-input">
-      <span class="eve-input-unit">R$</span>
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <span class="s-val">3</span>
+      <span class="s-label">Módulos analíticos</span>
     </div>
-    <div class="eve-row">
-      <label>Custo fixo rateado</label>
-      <input type="number" id="fixo" value="30" min="0" step="1" oninput="eveCalc()" class="eve-input">
-      <span class="eve-input-unit">R$</span>
+    <div class="hero-stat">
+      <span class="s-val">6</span>
+      <span class="s-label">Variáveis de controle</span>
     </div>
-    <div class="eve-row">
-      <label>Impostos sobre venda</label>
-      <input type="range" id="impostos" min="0" max="40" value="8" step="0.5" oninput="eveCalc(); updateTrack(this)" class="eve-range">
-      <span class="val" id="v-impostos">8,0%</span>
-    </div>
-
-    <hr class="eve-divider">
-    <p class="eve-section-label">Margem &amp; desconto</p>
-    <div class="eve-row">
-      <label>Margem de lucro desejada</label>
-      <input type="range" id="margem" min="0" max="80" value="30" step="0.5" oninput="eveCalc(); updateTrack(this)" class="eve-range">
-      <span class="val" id="v-margem">30,0%</span>
-    </div>
-    <div class="eve-row">
-      <label>Desconto máximo</label>
-      <input type="range" id="desconto" min="0" max="50" value="10" step="0.5" oninput="eveCalc(); updateTrack(this)" class="eve-range">
-      <span class="val" id="v-desconto">10,0%</span>
-    </div>
-    <div class="eve-row">
-      <label>Comissão de vendas</label>
-      <input type="range" id="comissao" min="0" max="20" value="5" step="0.5" oninput="eveCalc(); updateTrack(this)" class="eve-range">
-      <span class="val" id="v-comissao">5,0%</span>
-    </div>
-
-    <hr class="eve-divider">
-    <div class="eve-metrics">
-      <div class="eve-metric primary">
-        <p class="mlabel">Preço cheio</p>
-        <p class="mvalue" id="m-preco">—</p>
-        <p class="msub">sem desconto</p>
-      </div>
-      <div class="eve-metric">
-        <p class="mlabel">Preço c/ desconto</p>
-        <p class="mvalue" id="m-desc">—</p>
-        <p class="msub" id="m-desc-sub">—% off</p>
-      </div>
-      <div class="eve-metric">
-        <p class="mlabel">Margem real</p>
-        <p class="mvalue" id="m-margem-real">—</p>
-        <p class="msub" id="m-margem-pill"></p>
-      </div>
-      <div class="eve-metric">
-        <p class="mlabel">Lucro bruto</p>
-        <p class="mvalue" id="m-lucro">—</p>
-        <p class="msub">por unidade</p>
-      </div>
-    </div>
-
-    <p class="eve-section-label">Composição do preço</p>
-    <div id="eve-bars"></div>
-  </div>
-
-  <div id="epanel-cenarios" class="eve-panel-block">
-    <p class="eve-section-label">Parâmetros de volume</p>
-    <div class="eve-row">
-      <label>Volume de vendas</label>
-      <input type="number" id="volume" value="200" min="1" step="1" oninput="eveCalc()" class="eve-input">
-      <span class="eve-input-unit">un</span>
-    </div>
-    <div style="overflow-x:auto; margin-top: 1rem;">
-      <table class="eve-table" id="eve-table-cenarios">
-        <thead><tr>
-          <th>Cenário</th>
-          <th class="num">Preço</th>
-          <th class="num">Desconto</th>
-          <th class="num">Margem</th>
-          <th class="num">Receita</th>
-          <th class="num">Lucro total</th>
-        </tr></thead>
-        <tbody id="eve-tbody-cenarios"></tbody>
-      </table>
-    </div>
-    <div class="chart-wrap">
-      <canvas id="eve-chart-cenarios" role="img" aria-label="Gráfico de lucro total por cenário"></canvas>
+    <div class="hero-stat">
+      <span class="s-val">∞</span>
+      <span class="s-label">Cenários possíveis</span>
     </div>
   </div>
+</section>
 
-  <div id="epanel-break" class="eve-panel-block">
-    <p class="eve-section-label">Custo fixo mensal</p>
-    <div class="eve-row">
-      <label>Custo fixo total mensal</label>
-      <input type="number" id="cf-total" value="5000" min="0" step="100" oninput="eveCalc()" class="eve-input">
-      <span class="eve-input-unit">R$</span>
+<!-- FEATURES -->
+<section id="funcionalidades" class="section">
+  <div class="section-eyebrow">Funcionalidades</div>
+  <h2 class="section-title">Três módulos,<br><em>uma decisão</em></h2>
+  <p class="section-desc">Cada módulo responde uma pergunta crítica do seu negócio de forma objetiva e visual.</p>
+
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">💲</div>
+      <h3 class="feature-title">Módulo Pricing</h3>
+      <p class="feature-desc">Calcule o preço ideal considerando CMV, custos fixos, impostos, comissão e margem de lucro. Veja a composição do preço em barras visuais instantâneas.</p>
     </div>
-    <div class="eve-grid3">
-      <div class="eve-metric">
-        <p class="mlabel">Break-even (un.)</p>
-        <p class="mvalue" id="be-units">—</p>
-        <p class="msub">unidades/mês</p>
-      </div>
-      <div class="eve-metric">
-        <p class="mlabel">Break-even (receita)</p>
-        <p class="mvalue" id="be-receita">—</p>
-        <p class="msub">faturamento mínimo</p>
-      </div>
-      <div class="eve-metric">
-        <p class="mlabel">Margem de contribuição</p>
-        <p class="mvalue" id="be-mc">—</p>
-        <p class="msub">por unidade</p>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h3 class="feature-title">Módulo Cenários</h3>
+      <p class="feature-desc">Compare 6 níveis de desconto simultaneamente. Visualize receita, margem e lucro total por volume de vendas em uma tabela e gráfico dinâmicos.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚖️</div>
+      <h3 class="feature-title">Break-even</h3>
+      <p class="feature-desc">Descubra exatamente quantas unidades você precisa vender para cobrir seus custos fixos. Gráfico de cruzamento receita × custo total com ponto de equilíbrio.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<div id="como-funciona" class="how-section">
+  <div class="how-inner">
+    <div>
+      <div class="section-eyebrow">Como funciona</div>
+      <h2 class="section-title">Configure.<br><em>Simule.</em><br>Decida.</h2>
+      <div class="steps-list" style="margin-top: 2rem;">
+        <div class="step">
+          <div class="step-num">01</div>
+          <div class="step-content">
+            <h4>Insira seus custos</h4>
+            <p>Informe o custo direto (CMV) e o custo fixo rateado por produto. A base do seu pricing começa aqui.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">02</div>
+          <div class="step-content">
+            <h4>Ajuste as alíquotas</h4>
+            <p>Configure impostos sobre venda, comissão de vendas e a margem de lucro desejada com sliders de precisão.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">03</div>
+          <div class="step-content">
+            <h4>Analise em tempo real</h4>
+            <p>Todos os cálculos atualizam instantaneamente. Sem botões de confirmar, sem espera.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">04</div>
+          <div class="step-content">
+            <h4>Explore cenários</h4>
+            <p>Navegue pelos módulos Cenários e Break-even para validar sua estratégia com dados concretos.</p>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="chart-wrap" style="height: 220px;">
-      <canvas id="eve-chart-break" role="img" aria-label="Gráfico break-even por volume"></canvas>
+
+    <!-- Mini preview decoration -->
+    <div class="mini-preview">
+      <div class="mini-header">
+        <div class="mini-dot" style="background: var(--red); box-shadow: 0 0 6px var(--red);"></div>
+        <div class="mini-dot" style="background: var(--amber); box-shadow: 0 0 6px var(--amber);"></div>
+        <div class="mini-dot" style="background: var(--green); box-shadow: 0 0 6px var(--green);"></div>
+        <span style="font-family: var(--font-mono); font-size: 10px; color: var(--muted); margin-left: 8px; letter-spacing: 0.1em; text-transform: uppercase;">Composição do Preço</span>
+      </div>
+
+      <div class="mini-row">
+        <span class="mini-label">CMV</span>
+        <div class="mini-bar-wrap"><div class="mini-bar" style="width: 45%; background: var(--cyan);"></div></div>
+        <span class="mini-val" style="color: var(--cyan);">R$ 100,00</span>
+      </div>
+      <div class="mini-row">
+        <span class="mini-label">Fixo</span>
+        <div class="mini-bar-wrap"><div class="mini-bar" style="width: 14%; background: var(--subtle);"></div></div>
+        <span class="mini-val" style="color: var(--muted);">R$ 30,00</span>
+      </div>
+      <div class="mini-row">
+        <span class="mini-label">Impostos</span>
+        <div class="mini-bar-wrap"><div class="mini-bar" style="width: 8%; background: var(--red);"></div></div>
+        <span class="mini-val" style="color: var(--red);">R$ 17,60</span>
+      </div>
+      <div class="mini-row">
+        <span class="mini-label">Comissão</span>
+        <div class="mini-bar-wrap"><div class="mini-bar" style="width: 5%; background: var(--amber);"></div></div>
+        <span class="mini-val" style="color: var(--amber);">R$ 11,00</span>
+      </div>
+      <div class="mini-row">
+        <span class="mini-label">Lucro</span>
+        <div class="mini-bar-wrap"><div class="mini-bar" style="width: 30%; background: var(--green);"></div></div>
+        <span class="mini-val" style="color: var(--green);">R$ 66,00</span>
+      </div>
+
+      <div class="mini-metric-row">
+        <div class="mini-metric">
+          <div class="mm-label">Preço cheio</div>
+          <div class="mm-val">R$ 220</div>
+        </div>
+        <div class="mini-metric">
+          <div class="mm-label">Margem real</div>
+          <div class="mm-val" style="color: var(--green);">30,0%</div>
+        </div>
+      </div>
+      <div style="margin-top: 0.75rem; text-align: center;">
+        <span class="eve-pill green" style="font-size: 10px;">● meta atingida</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<section id="simulator-cta" class="cta-section">
+  <div class="cta-glow"></div>
+  <div class="cta-box">
+    <h2>Pronto para <em>simular</em>?</h2>
+    <p>Abra o simulador em tela cheia e comece a analisar seus preços com precisão. Gratuito, sem cadastro, sem limites.</p>
+    <a class="btn-primary" href="#" onclick="openSim(event)" style="font-size: 13px; padding: 16px 40px;">
+      Abrir Simulador Completo →
+    </a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <span>PriceOps · Simulador de Pricing Estratégico</span>
+  <span>Todos os cálculos são locais · Nenhum dado é enviado</span>
+</footer>
+
+<!-- ─── FULLSCREEN SIMULATOR OVERLAY ─── -->
+<div id="simulator-overlay">
+  <div class="sim-topbar">
+    <div class="sim-topbar-left">
+      <div class="eve-logo-dot"></div>
+      PriceOps — Simulador de Pricing
+    </div>
+    <button class="btn-close" onclick="closeSim()">✕ Fechar</button>
+  </div>
+  <div class="sim-body">
+    <div class="eve-wrap">
+      <div class="eve-header">
+        <div class="eve-logo-dot"></div>
+        <span class="eve-header-title">Simulador de Pricing</span>
+        <span class="eve-header-sub">Modo analítico</span>
+      </div>
+
+      <div class="eve-tabs">
+        <button class="eve-tab active" onclick="eveTab('pricing')">Pricing</button>
+        <button class="eve-tab" onclick="eveTab('cenarios')">Cenários</button>
+        <button class="eve-tab" onclick="eveTab('break')">Break-even</button>
+      </div>
+
+      <div id="epanel-pricing" class="eve-panel-block active">
+        <p class="eve-section-label">Estrutura de custos</p>
+        <div class="eve-row">
+          <label>Custo direto (CMV)</label>
+          <input type="number" id="cmv" value="100" min="0" step="1" oninput="eveCalc()" class="eve-input">
+          <span class="eve-input-unit">R$</span>
+        </div>
+        <div class="eve-row">
+          <label>Custo fixo rateado</label>
+          <input type="number" id="fixo" value="30" min="0" step="1" oninput="eveCalc()" class="eve-input">
+          <span class="eve-input-unit">R$</span>
+        </div>
+        <div class="eve-row">
+          <label>Impostos sobre venda</label>
+          <input type="range" id="impostos" min="0" max="40" value="8" step="0.5" oninput="eveCalc(); updateTrack(this)" class="eve-range">
+          <span class="val" id="v-impostos">8,0%</span>
+        </div>
+
+        <hr class="eve-divider">
+        <p class="eve-section-label">Margem &amp; desconto</p>
+        <div class="eve-row">
+          <label>Margem de lucro desejada</label>
+          <input type="range" id="margem" min="0" max="80" value="30" step="0.5" oninput="eveCalc(); updateTrack(this)" class="eve-range">
+          <span class="val" id="v-margem">30,0%</span>
+        </div>
+        <div class="eve-row">
+          <label>Desconto máximo</label>
+          <input type="range" id="desconto" min="0" max="50" value="10" step="0.5" oninput="eveCalc(); updateTrack(this)" class="eve-range">
+          <span class="val" id="v-desconto">10,0%</span>
+        </div>
+        <div class="eve-row">
+          <label>Comissão de vendas</label>
+          <input type="range" id="comissao" min="0" max="20" value="5" step="0.5" oninput="eveCalc(); updateTrack(this)" class="eve-range">
+          <span class="val" id="v-comissao">5,0%</span>
+        </div>
+
+        <hr class="eve-divider">
+        <div class="eve-metrics">
+          <div class="eve-metric primary">
+            <p class="mlabel">Preço cheio</p>
+            <p class="mvalue" id="m-preco">—</p>
+            <p class="msub">sem desconto</p>
+          </div>
+          <div class="eve-metric">
+            <p class="mlabel">Preço c/ desconto</p>
+            <p class="mvalue" id="m-desc">—</p>
+            <p class="msub" id="m-desc-sub">—% off</p>
+          </div>
+          <div class="eve-metric">
+            <p class="mlabel">Margem real</p>
+            <p class="mvalue" id="m-margem-real">—</p>
+            <p class="msub" id="m-margem-pill"></p>
+          </div>
+          <div class="eve-metric">
+            <p class="mlabel">Lucro bruto</p>
+            <p class="mvalue" id="m-lucro">—</p>
+            <p class="msub">por unidade</p>
+          </div>
+        </div>
+
+        <p class="eve-section-label">Composição do preço</p>
+        <div id="eve-bars"></div>
+      </div>
+
+      <div id="epanel-cenarios" class="eve-panel-block">
+        <p class="eve-section-label">Parâmetros de volume</p>
+        <div class="eve-row">
+          <label>Volume de vendas</label>
+          <input type="number" id="volume" value="200" min="1" step="1" oninput="eveCalc()" class="eve-input">
+          <span class="eve-input-unit">un</span>
+        </div>
+        <div style="overflow-x:auto; margin-top: 1rem;">
+          <table class="eve-table" id="eve-table-cenarios">
+            <thead><tr>
+              <th>Cenário</th>
+              <th class="num">Preço</th>
+              <th class="num">Desconto</th>
+              <th class="num">Margem</th>
+              <th class="num">Receita</th>
+              <th class="num">Lucro total</th>
+            </tr></thead>
+            <tbody id="eve-tbody-cenarios"></tbody>
+          </table>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="eve-chart-cenarios" role="img" aria-label="Gráfico de lucro total por cenário"></canvas>
+        </div>
+      </div>
+
+      <div id="epanel-break" class="eve-panel-block">
+        <p class="eve-section-label">Custo fixo mensal</p>
+        <div class="eve-row">
+          <label>Custo fixo total mensal</label>
+          <input type="number" id="cf-total" value="5000" min="0" step="100" oninput="eveCalc()" class="eve-input">
+          <span class="eve-input-unit">R$</span>
+        </div>
+        <div class="eve-grid3">
+          <div class="eve-metric">
+            <p class="mlabel">Break-even (un.)</p>
+            <p class="mvalue" id="be-units">—</p>
+            <p class="msub">unidades/mês</p>
+          </div>
+          <div class="eve-metric">
+            <p class="mlabel">Break-even (receita)</p>
+            <p class="mvalue" id="be-receita">—</p>
+            <p class="msub">faturamento mínimo</p>
+          </div>
+          <div class="eve-metric">
+            <p class="mlabel">Margem de contribuição</p>
+            <p class="mvalue" id="be-mc">—</p>
+            <p class="msub">por unidade</p>
+          </div>
+        </div>
+        <div class="chart-wrap" style="height: 220px;">
+          <canvas id="eve-chart-break" role="img" aria-label="Gráfico break-even por volume"></canvas>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
+// ─── LANDING CONTROLS ───
+function openSim(e) {
+  if (e) e.preventDefault();
+  document.getElementById('simulator-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  eveCalc();
+}
+
+function closeSim() {
+  document.getElementById('simulator-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSim(); });
+
+// ─── SIMULATOR LOGIC ───
 let eveChartC = null, eveChartB = null;
 
 function n(id) { return parseFloat(document.getElementById(id).value) || 0; }
@@ -234,8 +1133,7 @@ function fmt(v) { return 'R$\u00a0' + v.toLocaleString('pt-BR', {minimumFraction
 function fmtp(v) { return v.toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1}) + '%'; }
 
 function updateTrack(el) {
-  const min = +el.min, max = +el.max, val = +el.value;
-  const pct = ((val - min) / (max - min) * 100).toFixed(1) + '%';
+  const pct = ((+el.value - +el.min) / (+el.max - +el.min) * 100).toFixed(1) + '%';
   el.style.setProperty('--pct', pct);
 }
 
@@ -251,17 +1149,21 @@ function eveTab(t) {
 const chartDefaults = {
   responsive: true,
   maintainAspectRatio: false,
-  plugins: { legend: { display: false }, tooltip: {
-    backgroundColor: '#0b1422',
-    borderColor: 'rgba(0,180,255,0.3)',
-    borderWidth: 1,
-    titleColor: '#00b4ff',
-    bodyColor: '#e8f4ff',
-    callbacks: { label: ctx => ' ' + ctx.dataset.label + ': R$' + ctx.parsed.y.toLocaleString('pt-BR') }
-  }},
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      backgroundColor: '#081428',
+      borderColor: 'rgba(0,180,255,0.3)',
+      borderWidth: 1,
+      titleColor: '#00b4ff',
+      bodyColor: '#e8f4ff',
+      padding: 10,
+      callbacks: { label: ctx => ' ' + ctx.dataset.label + ': R$' + ctx.parsed.y.toLocaleString('pt-BR') }
+    }
+  },
   scales: {
-    x: { grid: { color: 'rgba(0,180,255,0.05)' }, ticks: { color: '#6a8aaa', font: { size: 11 } } },
-    y: { grid: { color: 'rgba(0,180,255,0.05)' }, ticks: { color: '#6a8aaa', font: { size: 11 }, callback: v => 'R$' + v.toLocaleString('pt-BR') } }
+    x: { grid: { color: 'rgba(0,180,255,0.04)' }, ticks: { color: '#6a8aaa', font: { size: 11, family: 'DM Mono' } } },
+    y: { grid: { color: 'rgba(0,180,255,0.04)' }, ticks: { color: '#6a8aaa', font: { size: 11, family: 'DM Mono' }, callback: v => 'R$' + v.toLocaleString('pt-BR') } }
   }
 };
 
@@ -302,7 +1204,6 @@ function eveCalc() {
     pill.innerHTML = '<span class="eve-pill red">prejuízo</span>';
   }
 
-  const bars = document.getElementById('eve-bars');
   const barColors = ['#00b4ff', '#354a62', '#ff4d6a', '#ffb340', '#00e5a0'];
   const items = [
     { label: 'CMV', val: cmv, color: barColors[0], pct: preco > 0 ? cmv/preco*100 : 0 },
@@ -311,7 +1212,7 @@ function eveCalc() {
     { label: 'Comissão', val: preco*comissao, color: barColors[3], pct: comissao*100 },
     { label: 'Lucro', val: lucro, color: barColors[4], pct: preco > 0 ? lucro/preco*100 : 0 },
   ];
-  bars.innerHTML = items.map(it => `
+  document.getElementById('eve-bars').innerHTML = items.map(it => `
     <div class="eve-bar-row">
       <span class="bl">${it.label}</span>
       <div class="eve-bar-track"><div class="eve-bar-fill" style="width:${Math.max(0,it.pct).toFixed(1)}%;background:${it.color}"></div></div>
@@ -331,10 +1232,10 @@ function eveCalc() {
   if (tbody) {
     tbody.innerHTML = cenarios.map((c, i) => `
       <tr style="${i===0 ? 'background: rgba(0,180,255,0.04);' : ''}">
-        <td style="${i===0 ? 'color:var(--eve-cyan);font-weight:500' : ''}">${i===0 ? 'Sem desconto' : c.desc+'% off'}</td>
+        <td style="${i===0 ? 'color:var(--cyan);font-weight:500' : ''}">${i===0 ? 'Sem desconto' : c.desc+'% off'}</td>
         <td class="num">${fmt(c.preco)}</td>
-        <td class="num" style="color:var(--eve-muted)">${c.desc > 0 ? fmtp(c.desc) : '—'}</td>
-        <td class="num" style="color:${c.margem >= n('margem') ? 'var(--eve-green)' : c.margem > 0 ? 'var(--eve-amber)' : 'var(--eve-red)'}">${fmtp(c.margem)}</td>
+        <td class="num" style="color:var(--muted)">${c.desc > 0 ? fmtp(c.desc) : '—'}</td>
+        <td class="num" style="color:${c.margem >= n('margem') ? 'var(--green)' : c.margem > 0 ? 'var(--amber)' : 'var(--red)'}">${fmtp(c.margem)}</td>
         <td class="num">${fmt(c.receita)}</td>
         <td class="num">${fmt(c.lucroTotal)}</td>
       </tr>`).join('');
@@ -348,8 +1249,8 @@ function eveCalc() {
       data: {
         labels: cenarios.map(c => c.desc === 0 ? 'Sem desc.' : c.desc + '%'),
         datasets: [
-          { label: 'Receita', data: cenarios.map(c => Math.round(c.receita)), backgroundColor: 'rgba(0,180,255,0.25)', borderColor: '#00b4ff', borderWidth: 1 },
-          { label: 'Lucro', data: cenarios.map(c => Math.round(c.lucroTotal)), backgroundColor: 'rgba(0,229,160,0.25)', borderColor: '#00e5a0', borderWidth: 1 }
+          { label: 'Receita', data: cenarios.map(c => Math.round(c.receita)), backgroundColor: 'rgba(0,180,255,0.2)', borderColor: '#00b4ff', borderWidth: 1 },
+          { label: 'Lucro', data: cenarios.map(c => Math.round(c.lucroTotal)), backgroundColor: 'rgba(0,229,160,0.2)', borderColor: '#00e5a0', borderWidth: 1 }
         ]
       },
       options: chartDefaults
@@ -360,6 +1261,7 @@ function eveCalc() {
   const mc = preco - cmv - preco*impostos - preco*comissao;
   const beUnits = mc > 0 ? Math.ceil(cfTotal / mc) : 0;
   const beReceita = beUnits * preco;
+
   const beEl = document.getElementById('be-units');
   if (beEl) beEl.textContent = beUnits.toLocaleString('pt-BR');
   const brEl = document.getElementById('be-receita');
@@ -387,3 +1289,5 @@ function eveCalc() {
 
 eveCalc();
 </script>
+</body>
+</html>
